@@ -16,7 +16,9 @@ class FileController {
 				file.path = ''
 				await fileService.createDir(file)
 			} else {
-				file.path = `${parentFile.path ? parentFile.path + '/' : ''}${parentFile.name}`
+				file.path = `${parentFile.path ? parentFile.path + '/' : ''}${
+					parentFile.name
+				}`
 				parentFile.children.push(file._id)
 				await parentFile.save()
 				await fileService.createDir(file)
@@ -35,16 +37,24 @@ class FileController {
 			let files
 			switch (sort) {
 				case 'name':
-					files = await File.find({ parent, user: req.user.id }).sort({ name: 1 })
+					files = await File.find({ parent, user: req.user.id }).sort({
+						name: 1
+					})
 					break
 				case 'type':
-					files = await File.find({ parent, user: req.user.id }).sort({ type: 1 })
+					files = await File.find({ parent, user: req.user.id }).sort({
+						type: 1
+					})
 					break
 				case 'date':
-					files = await File.find({ parent, user: req.user.id }).sort({ date: -1 })
+					files = await File.find({ parent, user: req.user.id }).sort({
+						date: -1
+					})
 					break
 				case 'size':
-					files = await File.find({ parent, user: req.user.id }).sort({ size: -1 })
+					files = await File.find({ parent, user: req.user.id }).sort({
+						size: -1
+					})
 					break
 				default:
 					files = await File.find({ parent, user: req.user.id })
@@ -57,7 +67,11 @@ class FileController {
 	async existCheck(req, res) {
 		try {
 			const { name, parent } = req.query
-			const file = await File.findOne({ user: req.user.id, name, parent: parent || null })
+			const file = await File.findOne({
+				user: req.user.id,
+				name,
+				parent: parent || null
+			})
 			res.json(!!file)
 		} catch (error) {
 			res.status(500).json(error.message)
@@ -65,7 +79,6 @@ class FileController {
 	}
 	async uploadFile(req, res) {
 		try {
-			console.log(req)
 			const { originalname, size } = req.file
 			const parent = await File.findById(req.body.parent)
 			const user = await User.findById(req.user.id)
@@ -101,7 +114,10 @@ class FileController {
 	}
 	async downloadFile(req, res) {
 		try {
-			const signedUrl = await fileService.downloadFile(await File.findById(req.query.id))
+			const signedUrl = await fileService.downloadFile(
+				await File.findById(req.query.id)
+			)
+			console.log(signedUrl)
 			https.get(signedUrl, file => {
 				file.pipe(res)
 			})
@@ -121,10 +137,14 @@ class FileController {
 			}
 			const response = await fileService.deleteFile(file)
 			const parent = await File.findById(file.parent)
-			user.files = user.files.filter(fileId => fileId.toString() !== file._id.toString())
+			user.files = user.files.filter(
+				fileId => fileId.toString() !== file._id.toString()
+			)
 			await user.save()
 			if (parent) {
-				parent.children = parent.children.filter(fileId => fileId.toString() !== file._id.toString())
+				parent.children = parent.children.filter(
+					fileId => fileId.toString() !== file._id.toString()
+				)
 				await parent.save()
 			}
 			await file.remove()
@@ -152,11 +172,18 @@ class FileController {
 			user.avatar = req.file.originalname
 			const userUpdated = await user.save()
 			res.json({
-				token: jwt.sign({ id: userUpdated._id }, process.env.SECRET_KEY, { expiresIn: '1hr' }),
+				token: jwt.sign({ id: userUpdated._id }, process.env.SECRET_KEY, {
+					expiresIn: '1hr'
+				}),
 				user: {
 					firstName: userUpdated.firstName,
 					lastName: userUpdated.lastName,
-					avatar: userUpdated.avatar ? await fileService.getAvatarPath(userUpdated.id, userUpdated.avatar) : null
+					avatar: userUpdated.avatar
+						? await fileService.getAvatarPath(
+								userUpdated.id,
+								userUpdated.avatar
+						  )
+						: null
 				}
 			})
 		} catch (error) {
@@ -171,11 +198,18 @@ class FileController {
 				user.avatar = null
 				const userUpdated = await user.save()
 				res.json({
-					token: jwt.sign({ id: userUpdated._id }, process.env.SECRET_KEY, { expiresIn: '1hr' }),
+					token: jwt.sign({ id: userUpdated._id }, process.env.SECRET_KEY, {
+						expiresIn: '1hr'
+					}),
 					user: {
 						firstName: userUpdated.firstName,
 						lastName: userUpdated.lastName,
-						avatar: userUpdated.avatar ? await fileService.getAvatarPath(userUpdated.id, userUpdated.avatar) : null
+						avatar: userUpdated.avatar
+							? await fileService.getAvatarPath(
+									userUpdated.id,
+									userUpdated.avatar
+							  )
+							: null
 					}
 				})
 			} else {

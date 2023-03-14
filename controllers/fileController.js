@@ -117,10 +117,10 @@ class FileController {
 			const signedUrl = await fileService.downloadFile(
 				await File.findById(req.query.id)
 			)
-			console.log(signedUrl)
-			https.get(signedUrl, file => {
-				file.pipe(res)
-			})
+			// https.get(signedUrl, file => {
+			// 	file.pipe(res)
+			// })
+			res.json(signedUrl)
 		} catch (e) {
 			res.status(500).json(e.message)
 		}

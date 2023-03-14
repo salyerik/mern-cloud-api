@@ -1,4 +1,9 @@
-const { S3Client, PutObjectCommand, GetObjectCommand, DeleteObjectCommand } = require('@aws-sdk/client-s3')
+const {
+	S3Client,
+	PutObjectCommand,
+	GetObjectCommand,
+	DeleteObjectCommand
+} = require('@aws-sdk/client-s3')
 const { Upload } = require('@aws-sdk/lib-storage')
 const { getSignedUrl } = require('@aws-sdk/s3-request-presigner')
 const Bucket = process.env.AWS_BUCKET
@@ -30,7 +35,8 @@ class FileService {
 				const { originalname, buffer, mimetype } = file
 				let path = null
 				if (parent) {
-					path = userId + '/' + parent.path + '/' + parent.name + '/' + originalname
+					path =
+						userId + '/' + parent.path + '/' + parent.name + '/' + originalname
 				} else {
 					path = userId + '/' + originalname
 				}
@@ -39,7 +45,9 @@ class FileService {
 					params: { Bucket, Key: path, Body: buffer, ContentType: mimetype },
 					partSize: 1024 * 1024 * 5
 				})
-				upload.on('httpUploadProgress', progress => cb(Math.round((progress.loaded * 100) / progress.total)))
+				upload.on('httpUploadProgress', progress =>
+					cb(Math.round((progress.loaded * 100) / progress.total))
+				)
 				await upload.done()
 				resolve()
 			} catch (error) {
@@ -67,7 +75,11 @@ class FileService {
 		return new Promise(async (resolve, reject) => {
 			try {
 				const path = this.getPath(file)
-				resolve(await getSignedUrl(s3, new GetObjectCommand({ Bucket, Key: path }), { expiresIn: 600 }))
+				resolve(
+					await getSignedUrl(s3, new GetObjectCommand({ Bucket, Key: path }), {
+						expiresIn: 600
+					})
+				)
 			} catch (e) {
 				reject(e.message)
 			}
@@ -77,7 +89,16 @@ class FileService {
 		return new Promise(async (resolve, reject) => {
 			try {
 				const Key = userId + '/avatar/' + file.originalname
-				resolve(await s3.send(new PutObjectCommand({ Bucket, Key, Body: file.buffer, ContentType: file.mimetype })))
+				resolve(
+					await s3.send(
+						new PutObjectCommand({
+							Bucket,
+							Key,
+							Body: file.buffer,
+							ContentType: file.mimetype
+						})
+					)
+				)
 			} catch (error) {
 				reject(error)
 			}
@@ -94,9 +115,13 @@ class FileService {
 		})
 	}
 	async getAvatarPath(userId, avatarName) {
-		return await getSignedUrl(s3, new GetObjectCommand({ Bucket, Key: userId + '/avatar/' + avatarName }), {
-			expiresIn: 600
-		})
+		return await getSignedUrl(
+			s3,
+			new GetObjectCommand({ Bucket, Key: userId + '/avatar/' + avatarName }),
+			{
+				expiresIn: 600
+			}
+		)
 	}
 	getPath(file) {
 		const parentPath = file.path ? '/' + file.path : ''

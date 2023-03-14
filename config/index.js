@@ -3,7 +3,7 @@ const { platform } = require('os')
 module.exports = {
 	PORT: process.env.PORT,
 	origin:
-		process.env.NODE_ENV === '1production'
+		process.env.NODE_ENV === 'production'
 			? process.env.REMOTE_APP_URL
 			: process.env.LOCAL_APP_URL,
 	mongodbUrl:

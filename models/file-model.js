@@ -1,5 +1,5 @@
-const { Schema, model, Types } = require('mongoose')
-const { ObjectId } = Types
+const { Schema, model, Types } = require('mongoose');
+const { ObjectId } = Types;
 
 const fileSchema = new Schema({
 	name: { type: String, required: true },
@@ -11,8 +11,8 @@ const fileSchema = new Schema({
 	parent: { type: ObjectId, ref: 'File' },
 	children: [{ type: ObjectId, ref: 'File' }],
 	date: { type: Date, default: Date.now() },
-})
+});
 
-const File = model('File', fileSchema)
+const File = model('File', fileSchema);
 
-module.exports = File
+module.exports = File;

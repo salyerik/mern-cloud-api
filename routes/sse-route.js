@@ -9,7 +9,7 @@ router.get(
 		res.flush = () => {};
 		next();
 	},
-	sse.init,
+	sse.init
 );
 
 module.exports = router;

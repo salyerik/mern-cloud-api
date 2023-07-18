@@ -6,27 +6,7 @@ const User = require('../models/user-model');
 const File = require('../models/file-model');
 const fileService = require('../services/file-service');
 
-class authController {
-	_checkValidation(req) {
-		const errors = validationResult(req);
-		if (!errors.isEmpty()) {
-			throw new Error(errors.array()[0].msg);
-		}
-	}
-	async _response(user, res) {
-		res.json({
-			token: jwt.sign({ id: user._id }, process.env.SECRET_KEY, {
-				expiresIn: '1hr',
-			}),
-			user: {
-				firstName: user.firstName,
-				lastName: user.lastName,
-				avatar: user.avatar
-					? await fileService.getAvatarPath(user._id, user.avatar)
-					: null,
-			},
-		});
-	}
+class AuthController {
 	async register(req, res) {
 		try {
 			this._checkValidation(req);
@@ -35,7 +15,7 @@ class authController {
 			if (candidate) {
 				return res
 					.status(401)
-					.json(`User with email: ${email} already exists!`);
+					.json(`User with email: ${email} already exists.`);
 			}
 			const hashPassword = await bcryptjs.hash(password, 4);
 			const user = await User.create({
@@ -60,9 +40,11 @@ class authController {
 					.status(401)
 					.json(`There is no user with this email: ${email}`);
 			}
-			const isCorrectPassword = await bcryptjs.compare(password, user.password);
+			const isCorrectPassword = bcryptjs.compareSync(password, user.password);
 			if (!isCorrectPassword) {
-				return res.status(401).json('Incorrect Password, please try again');
+				return res
+					.status(401)
+					.json('Incorrect Password, please enter the correct one');
 			}
 			this._response(user, res);
 		} catch (e) {
@@ -80,13 +62,26 @@ class authController {
 			res.status(401).json(error.message);
 		}
 	}
-	async getUsers(req, res) {
-		try {
-			res.json([1, 2, 3]);
-		} catch (error) {
-			res.status(401).json(error.message);
+	_checkValidation(req) {
+		const errors = validationResult(req);
+		if (!errors.isEmpty()) {
+			throw new Error(errors.array()[0].msg);
 		}
+	}
+	async _response(user, res) {
+		res.json({
+			token: jwt.sign({ id: user._id }, process.env.SECRET_KEY, {
+				expiresIn: '1hr',
+			}),
+			user: {
+				firstName: user.firstName,
+				lastName: user.lastName,
+				avatar: user.avatar
+					? await fileService.getAvatarPath(user._id, user.avatar)
+					: null,
+			},
+		});
 	}
 }
 
-module.exports = new authController();
+module.exports = new AuthController();

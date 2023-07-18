@@ -13,7 +13,7 @@ router.get('/exist-check', auth, fileController.existCheck);
 router.post(
 	'/upload',
 	[auth, upload.single('file')],
-	fileController.uploadFile,
+	fileController.uploadFile
 );
 router.get('/download', auth, fileController.downloadFile);
 router.get('/get-url', auth, fileController.getSignedFileUrl);
@@ -21,8 +21,12 @@ router.get('/search', auth, fileController.searchFiles);
 router.post(
 	'/avatar',
 	[auth, upload.single('file')],
-	fileController.uploadAvatar,
+	fileController.uploadAvatar.bind(fileController)
 );
-router.delete('/avatar', auth, fileController.deleteAvatar);
+router.delete(
+	'/avatar',
+	auth,
+	fileController.deleteAvatar.bind(fileController)
+);
 
 module.exports = router;

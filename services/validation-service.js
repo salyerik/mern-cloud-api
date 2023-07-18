@@ -5,7 +5,7 @@ const registerValidation = [
 	check('lastName', 'Invalid Last Name').isLength({ min: 2, max: 22 }),
 	check('email', 'Invalid E-mail').isEmail(),
 	check('password', 'Password length must be min: 6, max: 15 letters').isLength(
-		{ min: 6, max: 12 },
+		{ min: 6, max: 12 }
 	),
 ];
 

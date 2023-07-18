@@ -2,24 +2,23 @@ const jwt = require('jsonwebtoken');
 const File = require('../models/file-model');
 const User = require('../models/user-model');
 const fileService = require('../services/file-service');
-const sse = require('../services/sse');
 
 class FileController {
 	async createDir(req, res) {
 		try {
-			const { name, type, parent } = req.body;
+			const { name, parent } = req.body;
 			const user = await User.findById(req.user.id);
-			const parentFile = await File.findOne({ _id: parent });
-			const file = new File({ name, type, parent, user: user._id });
-			if (!parentFile) {
-				file.path = '';
-				await fileService.createDir(file);
-			} else {
+			const file = new File({ name, type: 'dir', parent, user: user._id });
+			if (parent) {
+				const parentFile = await File.findOne({ _id: parent });
 				file.path = `${parentFile.path ? parentFile.path + '/' : ''}${
 					parentFile.name
 				}`;
 				parentFile.children.push(file._id);
 				await parentFile.save();
+				await fileService.createDir(file);
+			} else {
+				file.path = '';
 				await fileService.createDir(file);
 			}
 			user.files.push(file._id);
@@ -33,31 +32,9 @@ class FileController {
 	async getFiles(req, res) {
 		try {
 			const { sort, parent } = req.query;
-			let files;
-			switch (sort) {
-				case 'name':
-					files = await File.find({ parent, user: req.user.id }).sort({
-						name: 1,
-					});
-					break;
-				case 'type':
-					files = await File.find({ parent, user: req.user.id }).sort({
-						type: 1,
-					});
-					break;
-				case 'date':
-					files = await File.find({ parent, user: req.user.id }).sort({
-						date: -1,
-					});
-					break;
-				case 'size':
-					files = await File.find({ parent, user: req.user.id }).sort({
-						size: -1,
-					});
-					break;
-				default:
-					files = await File.find({ parent, user: req.user.id });
-			}
+			const files = await File.find({ parent, user: req.user.id }).sort({
+				[sort]: 1,
+			});
 			res.json(files);
 		} catch (error) {
 			res.status(500).json({ message: error.message });
@@ -94,7 +71,7 @@ class FileController {
 			const dbFile = new File({
 				type,
 				name: originalname,
-				size: size,
+				size,
 				path: filePath,
 				user: user._id,
 				parent: parent ? parent._id : null,
@@ -114,24 +91,8 @@ class FileController {
 	async downloadFile(req, res) {
 		try {
 			const file = await File.findById(req.query.id);
-			const response = await fileService.downloadFile(file);
-			const total = response['ContentLength'];
-			res.set({
-				'Content-Disposition': `attachment; filename=${file.name}`,
-				'Content-Length': response['ContentLength'],
-				'Content-Type': response['ContentType'],
-			});
-			let diff = total;
-			let progress = 0;
-			response.Body.on('data', chunk => {
-				diff -= chunk.length;
-				const result = 100 - parseInt((diff * 100) / total);
-				if (progress !== result) {
-					progress = result;
-					sse.send(progress, `download-${file.name}`);
-				}
-			});
-			response.Body.pipe(res);
+			const fileStream = await fileService.downloadFile(file);
+			fileStream.Body.pipe(res);
 		} catch (e) {
 			res.status(500).end(e.message);
 		}
@@ -156,17 +117,17 @@ class FileController {
 				return res.status(400).json('Directory is not empty');
 			}
 			const response = await fileService.deleteFile(file);
-			const parent = await File.findById(file.parent);
+			const parentFile = await File.findById(file.parent);
 			user.files = user.files.filter(
-				fileId => fileId.toString() !== file._id.toString(),
+				fileId => fileId.toString() !== file._id.toString()
 			);
 			user.usedSpace -= file.size;
 			await user.save();
-			if (parent) {
-				parent.children = parent.children.filter(
-					fileId => fileId.toString() !== file._id.toString(),
+			if (parentFile) {
+				parentFile.children = parentFile.children.filter(
+					fileId => fileId.toString() !== file._id.toString()
 				);
-				await parent.save();
+				await parentFile.save();
 			}
 			await file.remove();
 			res.json(response);
@@ -192,21 +153,7 @@ class FileController {
 			await fileService.uploadAvatar(user.id, req.file);
 			user.avatar = req.file.originalname;
 			const userUpdated = await user.save();
-			res.json({
-				token: jwt.sign({ id: userUpdated._id }, process.env.SECRET_KEY, {
-					expiresIn: '1hr',
-				}),
-				user: {
-					firstName: userUpdated.firstName,
-					lastName: userUpdated.lastName,
-					avatar: userUpdated.avatar
-						? await fileService.getAvatarPath(
-								userUpdated.id,
-								userUpdated.avatar,
-						  )
-						: null,
-				},
-			});
+			this._response(userUpdated, res);
 		} catch (error) {
 			res.status(500).json(error.message);
 		}
@@ -218,27 +165,27 @@ class FileController {
 				fileService.deleteAvatar(user.id, user.avatar);
 				user.avatar = null;
 				const userUpdated = await user.save();
-				res.json({
-					token: jwt.sign({ id: userUpdated._id }, process.env.SECRET_KEY, {
-						expiresIn: '1hr',
-					}),
-					user: {
-						firstName: userUpdated.firstName,
-						lastName: userUpdated.lastName,
-						avatar: userUpdated.avatar
-							? await fileService.getAvatarPath(
-									userUpdated.id,
-									userUpdated.avatar,
-							  )
-							: null,
-					},
-				});
+				this._response(userUpdated, res);
 			} else {
 				res.json(user);
 			}
 		} catch (error) {
 			res.status(500).json(error.message);
 		}
+	}
+	async _response(user, res) {
+		res.json({
+			token: jwt.sign({ id: user._id }, process.env.SECRET_KEY, {
+				expiresIn: '1hr',
+			}),
+			user: {
+				firstName: user.firstName,
+				lastName: user.lastName,
+				avatar: user.avatar
+					? await fileService.getAvatarPath(user.id, user.avatar)
+					: null,
+			},
+		});
 	}
 }
 

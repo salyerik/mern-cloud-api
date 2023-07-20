@@ -16,11 +16,10 @@ class FileController {
 				}`;
 				parentFile.children.push(file._id);
 				await parentFile.save();
-				await fileService.createDir(file);
 			} else {
 				file.path = '';
-				await fileService.createDir(file);
 			}
+			await fileService.createDir(file);
 			user.files.push(file._id);
 			await user.save();
 			const createdFile = await file.save();

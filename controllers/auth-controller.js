@@ -24,7 +24,8 @@ class AuthController {
 				email,
 				password: hashPassword,
 			});
-			await fileService.createDir(new File({ user: user._id, name: '' }));
+			const userFolder = new File({ user: user._id, name: '' });
+			await fileService.createDir(userFolder);
 			this._response(user, res);
 		} catch (e) {
 			res.status(401).json(e.message);

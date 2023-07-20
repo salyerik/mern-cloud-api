@@ -13,10 +13,15 @@ app.use('/api/file', require('./routes/file-route'));
 
 const startServer = () => {
 	try {
-		mongoose.connect(mongodbUrl);
-		app.listen(PORT || 3030);
+		mongoose.connect(mongodbUrl, err => {
+			if (err) throw err;
+			app.listen(PORT || 3030, err => {
+				if (err) throw err;
+				console.log(`Server is running on Port: ${PORT}`);
+			});
+		});
 	} catch (error) {
-		console.log(error.message);
+		console.log(error);
 	}
 };
 

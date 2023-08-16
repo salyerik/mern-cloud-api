@@ -72,7 +72,7 @@ class AuthController {
 	async _response(user, res) {
 		res.json({
 			token: jwt.sign({ id: user._id }, process.env.SECRET_KEY, {
-				expiresIn: '1hr',
+				expiresIn: '28hr',
 			}),
 			user: {
 				firstName: user.firstName,

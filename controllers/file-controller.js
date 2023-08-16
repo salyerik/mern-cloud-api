@@ -129,7 +129,7 @@ class FileController {
 				await parentFile.save();
 			}
 			await file.remove();
-			res.json(response);
+			res.json({ id: file._id, ...response });
 		} catch (e) {
 			res.status(400).json(e.message);
 		}

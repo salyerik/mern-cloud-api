@@ -12,7 +12,7 @@ class AuthService {
 		const { firstName, lastName, email, password } = body;
 		const candidate = await User.findOne({ email });
 		if (candidate) {
-			throw new Error(`User with email: ${email} already exists.`);
+			throw new Error(`User with email: ${email} already exists`);
 		}
 		const hashPassword = await bcryptjs.hash(password, 4);
 		const activationLink = uuid.v4();

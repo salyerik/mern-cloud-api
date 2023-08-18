@@ -6,9 +6,9 @@ const {
 } = require('@aws-sdk/client-s3');
 const { Upload } = require('@aws-sdk/lib-storage');
 const { getSignedUrl } = require('@aws-sdk/s3-request-presigner');
-const jwt = require('jsonwebtoken');
 
-const sse = require('../services/sse');
+const sse = require('./sse');
+const commonService = require('./common-service');
 const User = require('../models/user-model');
 const File = require('../models/file-model');
 
@@ -25,9 +25,9 @@ class FileService {
 		const files = await File.find({ user, name: { $regex: regex } });
 		return files;
 	}
-	createDir(id, parent, name) {
+	createDir(userId, parent, name) {
 		return new Promise(async (resolve, reject) => {
-			const user = await User.findById(id);
+			const user = await User.findById(userId);
 			const file = new File({ name, type: 'dir', parent, user: user._id });
 			if (parent) {
 				const parentFile = await File.findOne({ _id: parent });
@@ -52,6 +52,11 @@ class FileService {
 				resolve(createdFolder);
 			}
 		});
+	}
+	async createUserDir(userFolder) {
+		await s3.send(
+			new PutObjectCommand({ Bucket, Key: userFolder.user.toString() + '/' })
+		);
 	}
 	async existCheck(user, name, parent) {
 		const file = await File.findOne({ user, name, parent: parent || null });
@@ -210,7 +215,7 @@ class FileService {
 			await s3.send(params);
 			user.avatar = file.originalname;
 			const userUpdated = await user.save();
-			resolve(this._response(userUpdated));
+			resolve(await commonService.response(userUpdated));
 		});
 	}
 	deleteAvatar(userId) {
@@ -223,41 +228,13 @@ class FileService {
 			await s3.send(new DeleteObjectCommand({ Bucket, Key }));
 			user.avatar = null;
 			const userUpdated = await user.save();
-			resolve(this._response(userUpdated));
+			resolve(await commonService.response(userUpdated));
 		});
 	}
 	_getPath(file) {
 		const parentPath = file.path ? '/' + file.path : '';
 		const filePath = file.name ? '/' + file.name : '';
 		return file.user.toString() + parentPath + filePath;
-	}
-	async _response(user) {
-		let avatar = null;
-		if (user.avatar) {
-			const command = new GetObjectCommand({
-				Bucket,
-				Key: user._id + '/avatar/' + user.avatar,
-			});
-			avatar = await getSignedUrl(s3, command, { expiresIn: 600 });
-		}
-		return {
-			token: jwt.sign({ id: user._id }, process.env.SECRET_KEY, {
-				expiresIn: '28hr',
-			}),
-			user: {
-				firstName: user.firstName,
-				lastName: user.lastName,
-				isMailConfirmed: user.isMailConfirmed,
-				avatar,
-			},
-		};
-	}
-	async getAvatarPath(userId, avatarName) {
-		const command = new GetObjectCommand({
-			Bucket,
-			Key: userId + '/avatar/' + avatarName,
-		});
-		return await getSignedUrl(s3, command, { expiresIn: 600 });
 	}
 }
 

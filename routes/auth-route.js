@@ -4,17 +4,13 @@ const validation = require('../services/validation-service');
 const authController = require('../controllers/auth-controller');
 const router = new Router();
 
-router.get('/', auth, authController.auth.bind(authController));
 router.post(
 	'/register',
 	validation.registerValidation,
-	authController.register.bind(authController)
+	authController.register
 );
-router.post(
-	'/login',
-	validation.loginValidation,
-	authController.login.bind(authController)
-);
-router.get('/activate/:link', authController.activate.bind(authController));
+router.post('/login', validation.loginValidation, authController.login);
+router.get('/', auth, authController.auth);
+router.get('/activate/:link', authController.activate);
 
 module.exports = router;

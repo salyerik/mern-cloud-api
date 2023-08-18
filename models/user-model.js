@@ -11,6 +11,8 @@ const userSchema = new Schema({
 	usedSpace: { type: Number, default: 0 },
 	avatar: { type: String },
 	files: [{ type: ObjectId, ref: 'File' }],
+	isMailConfirmed: { type: Boolean, default: false },
+	activationLink: { type: String, required: true },
 });
 
 const User = model('User', userSchema);

@@ -15,5 +15,6 @@ router.post(
 	validation.loginValidation,
 	authController.login.bind(authController)
 );
+router.get('/activate/:link', authController.activate.bind(authController));
 
 module.exports = router;

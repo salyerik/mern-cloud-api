@@ -18,15 +18,11 @@ router.post(
 router.get('/download', auth, fileController.downloadFile);
 router.get('/get-url', auth, fileController.getSignedFileUrl);
 router.get('/search', auth, fileController.searchFiles);
+router.delete('/avatar', auth, fileController.deleteAvatar);
 router.post(
 	'/avatar',
 	[auth, upload.single('file')],
-	fileController.uploadAvatar.bind(fileController)
-);
-router.delete(
-	'/avatar',
-	auth,
-	fileController.deleteAvatar.bind(fileController)
+	fileController.uploadAvatar
 );
 
 module.exports = router;

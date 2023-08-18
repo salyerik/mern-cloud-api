@@ -1,10 +1,13 @@
 const { validationResult } = require('express-validator');
 const jwt = require('jsonwebtoken');
 const bcryptjs = require('bcryptjs');
+const uuid = require('uuid');
 
 const User = require('../models/user-model');
 const File = require('../models/file-model');
 const fileService = require('../services/file-service');
+const mailService = require('../services/mail-service');
+const { origin } = require('../config/config');
 
 class AuthController {
 	async register(req, res) {
@@ -18,12 +21,15 @@ class AuthController {
 					.json(`User with email: ${email} already exists.`);
 			}
 			const hashPassword = await bcryptjs.hash(password, 4);
+			const activationLink = uuid.v4();
 			const user = await User.create({
 				firstName,
 				lastName,
 				email,
 				password: hashPassword,
+				activationLink,
 			});
+			await mailService.sendActivationMail(email, activationLink);
 			const userFolder = new File({ user: user._id, name: '' });
 			await fileService.createDir(userFolder);
 			this._response(user, res);
@@ -63,6 +69,20 @@ class AuthController {
 			res.status(401).json(error.message);
 		}
 	}
+	async activate(req, res) {
+		try {
+			const { link } = req.params;
+			const user = await User.findOne({ activationLink: link });
+			if (!user) {
+				throw ApiError.BadRequest('User not found');
+			}
+			user.isMailConfirmed = true;
+			await user.save();
+			res.redirect(origin + '/mern-cloud/profile');
+		} catch (error) {
+			res.status(500).json(error.message);
+		}
+	}
 	_checkValidation(req) {
 		const errors = validationResult(req);
 		if (!errors.isEmpty()) {
@@ -77,6 +97,7 @@ class AuthController {
 			user: {
 				firstName: user.firstName,
 				lastName: user.lastName,
+				isMailConfirmed: user.isMailConfirmed,
 				avatar: user.avatar
 					? await fileService.getAvatarPath(user._id, user.avatar)
 					: null,
